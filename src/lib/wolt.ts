@@ -1,7 +1,5 @@
-import { WoltMenuItem } from "@/types";
+import { WoltMenuItem, WoltVenue } from "@/types";
 
-const LAT = 32.0853;
-const LON = 34.7818;
 const WOLT_SEARCH_URL =
   "https://restaurant-api.wolt.com/v1/pages/search";
 
@@ -44,7 +42,9 @@ function pickRandom<T>(arr: T[]): T {
 }
 
 export async function searchWoltItems(
-  query: string
+  query: string,
+  lat: number,
+  lon: number
 ): Promise<WoltMenuItem[]> {
   const res = await fetch(WOLT_SEARCH_URL, {
     method: "POST",
@@ -52,13 +52,14 @@ export async function searchWoltItems(
     body: JSON.stringify({
       q: query,
       target: "items",
-      lat: LAT,
-      lon: LON,
+      lat,
+      lon,
     }),
   });
 
   if (!res.ok) {
-    throw new Error(`Wolt search failed: ${res.status}`);
+    const body = await res.text().catch(() => "");
+    throw new Error(`Wolt items search failed: ${res.status} ${res.statusText} - ${body.slice(0, 200)}`);
   }
 
   const data = await res.json();
@@ -74,6 +75,7 @@ export async function searchWoltItems(
       if (!details) continue;
 
       items.push({
+        type: "item",
         name: details.name ?? "Unknown item",
         description: details.description ?? "",
         price: details.price ?? 0,
@@ -87,6 +89,55 @@ export async function searchWoltItems(
   return items;
 }
 
+export async function searchWoltVenues(
+  query: string,
+  lat: number,
+  lon: number
+): Promise<WoltVenue[]> {
+  const res = await fetch(WOLT_SEARCH_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      q: query,
+      target: "venues",
+      lat,
+      lon,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Wolt venue search failed: ${res.status} ${res.statusText} - ${body.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+
+  const sections = data?.sections ?? [];
+  if (sections.length === 0) return [];
+
+  const venues: WoltVenue[] = [];
+
+  for (const section of sections) {
+    for (const item of section.items ?? []) {
+      const venue = item?.venue;
+      if (!venue) continue;
+
+      venues.push({
+        type: "venue",
+        name: venue.name ?? "Unknown restaurant",
+        short_description: venue.short_description ?? "",
+        image_url: item.image?.url ?? null,
+        slug: venue.slug ?? "",
+        rating: venue.rating?.score ?? null,
+        estimate_range: venue.estimate_range ?? null,
+        tags: venue.tags ?? [],
+      });
+    }
+  }
+
+  return venues;
+}
+
 export function getRandomSearchTerm(
   category: keyof typeof SEARCH_TERMS
 ): string {
@@ -96,5 +147,11 @@ export function getRandomSearchTerm(
 export function pickRandomItem(items: WoltMenuItem[]): WoltMenuItem {
   const withImages = items.filter((i) => i.image_url);
   const pool = withImages.length > 0 ? withImages : items;
+  return pickRandom(pool);
+}
+
+export function pickRandomVenue(venues: WoltVenue[]): WoltVenue {
+  const withImages = venues.filter((v) => v.image_url);
+  const pool = withImages.length > 0 ? withImages : venues;
   return pickRandom(pool);
 }

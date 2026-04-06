@@ -1,4 +1,5 @@
 export interface WoltMenuItem {
+  type: "item";
   name: string;
   description: string;
   price: number;
@@ -7,10 +8,25 @@ export interface WoltMenuItem {
   venue_slug: string;
 }
 
+export interface WoltVenue {
+  type: "venue";
+  name: string;
+  short_description: string;
+  image_url: string | null;
+  slug: string;
+  rating: number | null;
+  estimate_range: string | null;
+  tags: string[];
+}
+
+export type SpinResultItem = WoltMenuItem | WoltVenue;
+
 export interface SpinResult {
-  main: WoltMenuItem;
-  side: WoltMenuItem;
-  dessert: WoltMenuItem;
+  main: SpinResultItem;
+  side: SpinResultItem;
+  dessert: SpinResultItem;
 }
 
 export type MealCategory = "main" | "side" | "dessert";
+export type SearchMode = "items" | "venues";
+export type VenueMatch = "off" | "main-side" | "all";

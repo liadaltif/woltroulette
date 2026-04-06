@@ -11,7 +11,7 @@ export default function SpinButton({ onClick, isSpinning }: SpinButtonProps) {
       onClick={onClick}
       disabled={isSpinning}
       className={`
-        relative w-44 h-44 rounded-full text-white font-bold text-2xl
+        relative w-16 h-16 md:w-32 md:h-32 rounded-full text-white font-bold text-sm md:text-xl
         bg-gradient-to-br from-[#009DE0] via-purple-500 to-pink-500
         shadow-lg shadow-purple-500/30
         transition-all duration-200

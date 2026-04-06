@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { SpinResult } from "@/types";
+import { MealCategory, SpinResult } from "@/types";
 import ResultCard from "./ResultCard";
+import SkeletonCard from "./SkeletonCard";
 
 interface SlotMachineProps {
   result: SpinResult | null;
   isSpinning: boolean;
+  locked: Record<MealCategory, boolean>;
+  onToggleLock: (category: MealCategory) => void;
 }
 
 const CATEGORIES = [
@@ -15,54 +17,31 @@ const CATEGORIES = [
   { key: "dessert" as const, label: "Dessert", emoji: "🍰" },
 ];
 
-export default function SlotMachine({ result, isSpinning }: SlotMachineProps) {
-  const [revealed, setRevealed] = useState([false, false, false]);
-
-  useEffect(() => {
-    if (result) {
-      // Staggered reveal
-      setRevealed([false, false, false]);
-      const timers = CATEGORIES.map((_, i) =>
-        setTimeout(() => {
-          setRevealed((prev) => {
-            const next = [...prev];
-            next[i] = true;
-            return next;
-          });
-        }, i * 300)
-      );
-      return () => timers.forEach(clearTimeout);
-    } else {
-      setRevealed([false, false, false]);
-    }
-  }, [result]);
-
-  if (isSpinning) {
-    return (
-      <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
-        {CATEGORIES.map((cat) => (
-          <div
-            key={cat.key}
-            className="w-full max-w-xs h-80 rounded-2xl bg-white/5 border border-white/10 animate-pulse"
-          />
-        ))}
-      </div>
-    );
-  }
-
-  if (!result) return null;
+export default function SlotMachine({
+  result,
+  isSpinning,
+  locked,
+  onToggleLock,
+}: SlotMachineProps) {
+  if (!result && !isSpinning) return null;
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
-      {CATEGORIES.map((cat, i) => (
-        <ResultCard
-          key={cat.key}
-          item={result[cat.key]}
-          category={cat.label}
-          emoji={cat.emoji}
-          revealed={revealed[i]}
-        />
-      ))}
+    <div className="flex flex-col md:flex-row gap-4 md:gap-4 justify-center items-stretch w-full px-2 md:px-0">
+      {CATEGORIES.map((cat) =>
+        result ? (
+          <ResultCard
+            key={cat.key}
+            item={result[cat.key]}
+            category={cat.label}
+            emoji={cat.emoji}
+            loading={isSpinning && !locked[cat.key]}
+            isLocked={locked[cat.key]}
+            onToggleLock={() => onToggleLock(cat.key)}
+          />
+        ) : (
+          <SkeletonCard key={cat.key} category={cat.label} emoji={cat.emoji} />
+        )
+      )}
     </div>
   );
 }
